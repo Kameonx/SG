@@ -1,15 +1,6 @@
-import os
-# Set XDG_RUNTIME_DIR if not set and disable audio to avoid ALSA errors
-if 'XDG_RUNTIME_DIR' not in os.environ or not os.environ['XDG_RUNTIME_DIR']:
-    os.environ['XDG_RUNTIME_DIR'] = '/tmp'
-os.environ['SDL_AUDIODRIVER'] = 'dummy'
-
 import pygame
 import sys
 import random
-from flask import Flask, render_template, request, send_file  # new import for web version
-import io  # new import for in-memory file handling
-from PIL import Image  # new import to convert Pygame surface to image
 
 # Initialize Pygame
 pygame.init()
@@ -727,45 +718,5 @@ def main():
         pygame.display.flip()  
         clock.tick(FPS)
 
-# Determine run mode ("web" vs "pygame")
-if len(sys.argv) > 1 and sys.argv[1] == "web":
-    run_mode = "web"
-else:
-    run_mode = "pygame"
-
-# Create a Flask app instance unconditionally (for gunicorn)
-app = Flask(__name__)
-
-if run_mode == "web":
-    @app.route("/", methods=["GET", "HEAD"])
-    def index():
-        # Pass the classes and animations to the template.
-        return render_template("index.html", 
-                               classes=["Warrior", "Archer", "Mage"],
-                               animations=["Idle", "Walking", "Attacking", "Defending", "Dying"])
-    
-    @app.route("/generate", methods=["POST"])
-    def generate():
-        char_class = request.form.get("class", "warrior").lower()
-        anim = request.form.get("animation", "idle").lower()
-        skin_color = random.choice([(255,213,170),(240,188,150),(204,145,105),(160,120,90)])
-        hair_color = random.choice([(50,25,0),(70,50,0),(255,215,0),(150,75,0)])
-        if char_class == "warrior":
-            outfit_color = random.choice([(139,0,0),(165,42,42),(128,128,128)])
-        elif char_class == "archer":
-            outfit_color = random.choice([(0,100,0),(34,139,34),(47,79,79)])
-        else:
-            outfit_color = random.choice([(75,0,130),(72,61,139),(25,25,112)])
-        sprite = generate_sprite(char_class, anim, 0, skin_color, hair_color, outfit_color)
-        data = pygame.image.tostring(sprite, "RGBA")
-        img = Image.frombytes("RGBA", (SPRITE_SIZE, SPRITE_SIZE), data)
-        img_io = io.BytesIO()
-        img.save(img_io, 'PNG')
-        img_io.seek(0)
-        return send_file(img_io, mimetype='image/png')
-
 if __name__ == '__main__':
-    if run_mode == "web":
-        app.run(debug=True)
-    else:
-        main()
+    main()
