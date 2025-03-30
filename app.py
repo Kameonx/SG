@@ -148,6 +148,215 @@ def generate_sprite(class_type, animation, frame=0, skin_color=None, hair_color=
     img = pygame.Surface((SPRITE_SIZE, SPRITE_SIZE), pygame.SRCALPHA, 32)
     img.fill((0, 0, 0, 0))
     
+    if class_type in ['slime', 'goblin', 'wolf', 'bear', 'troll', 'ogre']:
+        if class_type == 'slime':
+            # Slime with a translucent body and eyes
+            body_color = (0, 255, 0, 180)  # Semi-transparent green
+            highlight_color = (150, 255, 150, 200)
+            
+            # Idle animation: Slime pulsates
+            size_variation = [0, 1, 2, 1][frame]
+            pygame.draw.ellipse(img, body_color, (8, 16 - size_variation, 16, 16 + size_variation*2))
+            pygame.draw.ellipse(img, highlight_color, (10, 18 - size_variation, 12, 8))  # Highlight
+            
+            # Blinking eyes
+            if frame != 2:  # Eyes open on frames 0, 1, 3
+                pygame.draw.circle(img, (0, 0, 0), (12, 20), 2)  # Left eye
+                pygame.draw.circle(img, (0, 0, 0), (20, 20), 2)  # Right eye
+            else:  # Eyes closed on frame 2
+                pygame.draw.line(img, (0, 0, 0), (11, 20), (13, 20), 1)  # Left eye closed
+                pygame.draw.line(img, (0, 0, 0), (19, 20), (21, 20), 1)  # Right eye closed
+            
+            if animation == 'walking':
+                # Walking animation: Slime jiggles up and down
+                jiggle_offset = [0, -2, 0, 2][frame % 4]
+                pygame.draw.ellipse(img, body_color, (8, 16 + jiggle_offset, 16, 16))
+                pygame.draw.ellipse(img, highlight_color, (10, 18 + jiggle_offset, 12, 8))
+            elif animation == 'attacking':
+                offset = frame % 2 * 4
+                pygame.draw.ellipse(img, body_color, (8 + offset, 16, 16, 16))
+            elif animation == 'dying':
+                pygame.draw.ellipse(img, body_color, (8, 16 + frame * 2, 16, 16))
+        
+        elif class_type == 'goblin':
+            # Goblin with a hunched posture, ears, and a club
+            body_color = (34, 139, 34)
+            ear_color = (50, 205, 50)
+            
+            # Idle animation: Goblin bobs slightly up and down, blinks
+            bob_offset = [0, 1, 0, -1][frame]
+            pygame.draw.rect(img, body_color, (10, 16 + bob_offset, 12, 16))  # Body
+            pygame.draw.polygon(img, ear_color, [(8, 16 + bob_offset), (4, 12 + bob_offset), (8, 20 + bob_offset)])  # Left ear
+            pygame.draw.polygon(img, ear_color, [(24, 16 + bob_offset), (28, 12 + bob_offset), (24, 20 + bob_offset)])  # Right ear
+            
+            # Blinking eyes
+            if frame != 2:
+                pygame.draw.circle(img, (0, 0, 0), (14, 20 + bob_offset), 2)  # Left eye
+                pygame.draw.circle(img, (0, 0, 0), (18, 20 + bob_offset), 2)  # Right eye
+            else:
+                pygame.draw.line(img, (0, 0, 0), (13, 20 + bob_offset), (15, 20 + bob_offset), 1)  # Left eye closed
+                pygame.draw.line(img, (0, 0, 0), (17, 20 + bob_offset), (19, 20 + bob_offset), 1)  # Right eye closed
+                
+            pygame.draw.line(img, (139, 69, 19), (10, 28), (6, 24), 3)  # Club
+            
+            if animation == 'walking':
+                # Walking animation: Goblin alternates leg positions
+                leg_offset = [0, 2, 0, -2][frame % 4]
+                pygame.draw.line(img, body_color, (12, 28), (10, 32 + leg_offset), 2)  # Left leg
+                pygame.draw.line(img, body_color, (20, 28), (22, 32 - leg_offset), 2)  # Right leg
+            elif animation == 'attacking':
+                offset = frame % 2 * 4
+                pygame.draw.line(img, (139, 69, 19), (10 + offset, 28), (6 + offset, 24), 3)
+            elif animation == 'dying':
+                pygame.draw.rect(img, body_color, (10, 16 + frame * 2, 12, 16))
+        
+        elif class_type == 'wolf':
+            # Wolf with a sleek body, tail, and sharp eyes
+            body_color = (128, 128, 128)
+            tail_color = (100, 100, 100)
+            
+            # Idle animation: Wolf's tail wags and it occasionally sniffs
+            pygame.draw.polygon(img, body_color, [(8, 24), (16, 8), (24, 24)])  # Body
+            
+            # Wagging tail animation
+            tail_positions = [(4, 28), (6, 26), (4, 28), (2, 30)]
+            pygame.draw.line(img, tail_color, (8, 24), tail_positions[frame], 3)  # Animated tail
+            
+            # Eye animation (occasional blink)
+            if frame != 2:
+                pygame.draw.circle(img, (255, 255, 0), (14, 16), 2)  # Left eye
+                pygame.draw.circle(img, (255, 255, 0), (18, 16), 2)  # Right eye
+            else:
+                pygame.draw.line(img, (0, 0, 0), (13, 16), (15, 16), 1)  # Left eye closed
+                pygame.draw.line(img, (0, 0, 0), (17, 16), (19, 16), 1)  # Right eye closed
+            
+            if animation == 'walking':
+                # Walking animation: Wolf alternates leg positions
+                leg_offset = [0, 2, 0, -2][frame % 4]
+                pygame.draw.line(img, body_color, (12, 24), (10, 28 + leg_offset), 2)  # Left leg
+                pygame.draw.line(img, body_color, (20, 24), (22, 28 - leg_offset), 2)  # Right leg
+            elif animation == 'attacking':
+                offset = frame % 2 * 4
+                pygame.draw.polygon(img, body_color, [(8 + offset, 24), (16 + offset, 8), (24 + offset, 24)])
+            elif animation == 'dying':
+                pygame.draw.polygon(img, body_color, [(8, 24 + frame * 2), (16, 8 + frame * 2), (24, 24 + frame * 2)])
+        
+        elif class_type == 'bear':
+            # Bear with a large body, claws, and a snout
+            body_color = (139, 69, 19)
+            snout_color = (160, 82, 45)
+            claw_color = (255, 255, 255)
+            
+            # Idle animation: Bear breathes and occasionally growls
+            breath_size = [0, 1, 0, -1][frame]
+            pygame.draw.circle(img, body_color, (16, 16), 8 + breath_size)  # Body that expands and contracts
+            pygame.draw.rect(img, snout_color, (14, 20, 4, 2))  # Snout
+            
+            # Eyes with occasional blink
+            if frame != 2:
+                pygame.draw.circle(img, (0, 0, 0), (12, 14), 1)  # Left eye
+                pygame.draw.circle(img, (0, 0, 0), (20, 14), 1)  # Right eye
+            else:
+                pygame.draw.line(img, (0, 0, 0), (11, 14), (13, 14), 1)  # Left eye closed
+                pygame.draw.line(img, (0, 0, 0), (19, 14), (21, 14), 1)  # Right eye closed
+                
+            pygame.draw.line(img, claw_color, (12, 24), (10, 28), 2)  # Left claw
+            pygame.draw.line(img, claw_color, (20, 24), (22, 28), 2)  # Right claw
+            
+            if animation == 'walking':
+                # Walking animation: Bear alternates leg positions
+                leg_offset = [0, 2, 0, -2][frame % 4]
+                pygame.draw.line(img, body_color, (12, 24), (10, 28 + leg_offset), 2)  # Left leg
+                pygame.draw.line(img, body_color, (20, 24), (22, 28 - leg_offset), 2)  # Right leg
+            elif animation == 'attacking':
+                offset = frame % 2 * 4
+                pygame.draw.circle(img, body_color, (16 + offset, 16), 8)
+            elif animation == 'dying':
+                pygame.draw.circle(img, body_color, (16, 16 + frame * 2), 8)
+        
+        elif class_type == 'troll':
+            # Troll with a bulky body, tusks, and a club
+            body_color = (0, 100, 0)
+            tusk_color = (255, 255, 255)
+            
+            # Idle animation: Troll shifts weight and scratches
+            bob_offset = [0, 1, 0, -1][frame]
+            scratch_position = [0, -1, -2, -1][frame]  # Arm scratching motion
+            
+            pygame.draw.rect(img, body_color, (8, 12 + bob_offset, 16, 20))  # Body
+            pygame.draw.line(img, tusk_color, (10, 20 + bob_offset), (8, 24 + bob_offset), 2)  # Left tusk
+            pygame.draw.line(img, tusk_color, (22, 20 + bob_offset), (24, 24 + bob_offset), 2)  # Right tusk
+            
+            # Eyes with occasional blink
+            if frame != 2:
+                pygame.draw.circle(img, (255, 0, 0), (12, 18 + bob_offset), 1)  # Left red eye
+                pygame.draw.circle(img, (255, 0, 0), (20, 18 + bob_offset), 1)  # Right red eye
+            else:
+                pygame.draw.line(img, (0, 0, 0), (11, 18 + bob_offset), (13, 18 + bob_offset), 1)  # Left eye closed
+                pygame.draw.line(img, (0, 0, 0), (19, 18 + bob_offset), (21, 18 + bob_offset), 1)  # Right eye closed
+                
+            pygame.draw.line(img, (139, 69, 19), (6, 28 + scratch_position), (2, 24), 3)  # Club in scratching motion
+            
+            if animation == 'walking':
+                # Walking animation: Troll alternates leg positions
+                leg_offset = [0, 2, 0, -2][frame % 4]
+                pygame.draw.line(img, body_color, (10, 28), (8, 32 + leg_offset), 2)  # Left leg
+                pygame.draw.line(img, body_color, (22, 28), (24, 32 - leg_offset), 2)  # Right leg
+            elif animation == 'attacking':
+                offset = frame % 2 * 4
+                pygame.draw.line(img, (139, 69, 19), (6 + offset, 28), (2 + offset, 24), 3)
+            elif animation == 'dying':
+                pygame.draw.rect(img, body_color, (8, 12 + frame * 2, 16, 20))
+        
+        elif class_type == 'ogre':
+            # Ogre with a massive body, a club, and a horned helmet
+            body_color = (85, 107, 47)
+            helmet_color = (100, 100, 120)
+            horn_color = (255, 255, 255)
+            
+            # Idle animation: Ogre breathes heavily and occasionally looks around
+            breath_offset = [0, 1, 0, -1][frame]
+            head_turn = [0, 1, 0, -1][frame]  # Slight head turn
+            
+            pygame.draw.rect(img, body_color, (6, 10 + breath_offset, 20, 22))  # Body
+            pygame.draw.rect(img, helmet_color, (8 + head_turn, 8 + breath_offset, 16, 4))  # Helmet shifts with head
+            pygame.draw.line(img, horn_color, (8 + head_turn, 8 + breath_offset), (6 + head_turn, 4 + breath_offset), 2)  # Left horn
+            pygame.draw.line(img, horn_color, (24 + head_turn, 8 + breath_offset), (26 + head_turn, 4 + breath_offset), 2)  # Right horn
+            
+            # Glowing eyes with occasional blink
+            if frame != 2:
+                pygame.draw.circle(img, (255, 255, 0), (12 + head_turn, 10 + breath_offset), 2)  # Left eye
+                pygame.draw.circle(img, (255, 255, 0), (20 + head_turn, 10 + breath_offset), 2)  # Right eye
+            else:
+                pygame.draw.line(img, (0, 0, 0), (10 + head_turn, 10 + breath_offset), (14 + head_turn, 10 + breath_offset), 1)  # Left eye closed
+                pygame.draw.line(img, (0, 0, 0), (18 + head_turn, 10 + breath_offset), (22 + head_turn, 10 + breath_offset), 1)  # Right eye closed
+                
+            pygame.draw.line(img, (139, 69, 19), (6, 28), (2, 24), 3)  # Club
+            
+            if animation == 'walking':
+                # Walking animation: Ogre alternates leg positions
+                leg_offset = [0, 2, 0, -2][frame % 4]
+                pygame.draw.line(img, body_color, (10, 28), (8, 32 + leg_offset), 2)  # Left leg
+                pygame.draw.line(img, body_color, (22, 28), (24, 32 - leg_offset), 2)  # Right leg
+            elif animation == 'attacking':
+                offset = frame % 2 * 4
+                pygame.draw.line(img, (139, 69, 19), (6 + offset, 28), (2 + offset, 24), 3)
+            elif animation == 'dying':
+                pygame.draw.rect(img, body_color, (6, 10 + frame * 2, 20, 22))
+        
+        # Defense animation (shield effect for all monsters)
+        if animation == 'defending':
+            pygame.draw.circle(img, (200, 200, 200), (16, 16), 10, 2)  # Shield outline
+        
+        return img  # Ensure the function returns here for monsters
+    
+    elif class_type in ['human bandit', 'human wizard']:
+        # Reuse Warrior and Mage animations
+        if class_type == 'human bandit':
+            return generate_sprite('warrior', animation, frame, skin_color, hair_color, outfit_color)
+        elif class_type == 'human wizard':
+            return generate_sprite('mage', animation, frame, skin_color, hair_color, outfit_color)
+    
     if skin_color is None:
         skin_color = random.choice([(255, 213, 170), (240, 188, 150), (204, 145, 105), (160, 120, 90)])
     if hair_color is None:
@@ -549,7 +758,7 @@ def main():
     
     class_dropdown = Dropdown(
         left_column_x, row1_y + 30, column_width, 40,
-        ['Warrior', 'Archer', 'Mage']
+        ['Warrior', 'Archer', 'Mage', 'Slime', 'Goblin', 'Wolf', 'Bear', 'Troll', 'Ogre', 'Human Bandit', 'Human Wizard']
     )
     animation_dropdown = Dropdown(
         right_column_x, row1_y + 30, column_width, 40,
