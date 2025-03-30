@@ -10,9 +10,9 @@ This application allows you to generate pixel art character sprites in different
 
 ## Using The Sprite Generator
 
-You can access the app in two ways:
+You can access the app:
 
-### Option 1: Use the Pygame GUI Version
+### 1: Use the Pygame GUI Version
 🎮 Run the desktop application for an interactive experience:
 
 1. Install the required dependencies with `pip install -r requirements.txt`
@@ -21,9 +21,6 @@ You can access the app in two ways:
 4. Click "Generate Sprite" to create a new character
 5. Adjust animation speed if desired
 6. Use "Save Sprite" to export the animation frames as PNG files
-
-### Option 2: Use the Web Version (If Configured)
-🌐 Access through a web browser:
 
 ## Features
 
