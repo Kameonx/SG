@@ -737,7 +737,7 @@ else:
 app = Flask(__name__)
 
 if run_mode == "web":
-    @app.route("/")
+    @app.route("/", methods=["GET", "HEAD"])
     def index():
         # Pass the classes and animations to the template.
         return render_template("index.html", 
