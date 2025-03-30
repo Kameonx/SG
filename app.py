@@ -739,7 +739,10 @@ app = Flask(__name__)
 if run_mode == "web":
     @app.route("/")
     def index():
-        return render_template("index.html")
+        # Pass the classes and animations to the template.
+        return render_template("index.html", 
+                               classes=["Warrior", "Archer", "Mage"],
+                               animations=["Idle", "Walking", "Attacking", "Defending", "Dying"])
     
     @app.route("/generate", methods=["POST"])
     def generate():
