@@ -43,19 +43,50 @@ class UIElement(pygame.sprite.Sprite):
         self.update_image()
     
     def update_image(self):
-        self.image.fill(SELECTED_COLOR if self.selected else BUTTON_COLOR)
-        pygame.draw.rect(self.image, TEXT_COLOR, pygame.Rect(0, 0, self.rect.width, self.rect.height), 2)
+        # Create a more visually appealing UI element with gradient and rounded corners effect
+        self.image.fill((0, 0, 0, 0))  # Start with transparent background
+        
+        # Create gradient background
+        if self.selected:
+            color1 = (80, 120, 255)  # Brighter blue when selected
+            color2 = (60, 80, 180)
+        else:
+            color1 = (70, 70, 90)  # Darker gray when not selected
+            color2 = (50, 50, 70)
+        
+        # Draw gradient
+        for y in range(self.rect.height):
+            progress = y / self.rect.height
+            color = (
+                int(color1[0] * (1 - progress) + color2[0] * progress),
+                int(color1[1] * (1 - progress) + color2[1] * progress),
+                int(color1[2] * (1 - progress) + color2[2] * progress)
+            )
+            pygame.draw.line(self.image, color, (0, y), (self.rect.width, y))
+        
+        # Draw border with slight rounding effect
+        border_color = (200, 200, 250) if self.selected else (100, 100, 150)
+        pygame.draw.rect(self.image, border_color, pygame.Rect(0, 0, self.rect.width, self.rect.height), 2, border_radius=5)
+        
+        # Add text shadow for depth
         font = pygame.font.Font(None, 36)
-        text = font.render(self.text, True, TEXT_COLOR)
-        text_width = text.get_width()
-        self.image.blit(text, ((self.rect.width - text_width) // 2, 5))
+        text_shadow = font.render(self.text, True, (20, 20, 30))
+        text_width = text_shadow.get_width()
+        self.image.blit(text_shadow, ((self.rect.width - text_width) // 2 + 1, 6))
+        
+        # Main text
+        text_color = (255, 255, 255) if self.selected else (220, 220, 220)
+        text_surface = font.render(self.text, True, text_color)
+        self.image.blit(text_surface, ((self.rect.width - text_width) // 2, 5))
 
 class Button(UIElement):
     def handle_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Only handle left mouse button (button 1)
             if self.rect.collidepoint(event.pos):
                 self.selected = not self.selected
                 self.update_image()
+                return True  # Indicate the button was clicked
+        return False
 
 class Dropdown(UIElement):
     def __init__(self, x, y, w, h, options):
@@ -64,49 +95,125 @@ class Dropdown(UIElement):
         self.open = False
         self.selected_index = 0
         self.option_rects = []
-        
+        self.scroll_offset = 0
+        self.max_visible_options = 7
+        self.scrollbar_rect = None
+        self.scrollbar_handle_rect = None
+        self.dragging_scrollbar = False
+        self.drag_start_y = 0
+        self.drag_start_offset = 0
+        self.dropdown_menu_rect = None
+
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.rect.collidepoint(event.pos):
-                self.open = not self.open
-            elif self.open:
-                for i, option_rect in enumerate(self.option_rects):
-                    if option_rect.collidepoint(event.pos):
-                        self.selected_index = i
-                        self.text = self.options[self.selected_index]
+            # Only handle left mouse button clicks (button 1)
+            if event.button == 1:
+                if self.rect.collidepoint(event.pos):
+                    self.open = not self.open
+                    return True
+                elif self.open:
+                    # Check scrollbar handle click
+                    if self.scrollbar_handle_rect and self.scrollbar_handle_rect.collidepoint(event.pos):
+                        self.dragging_scrollbar = True
+                        self.drag_start_y = event.pos[1]
+                        self.drag_start_offset = self.scroll_offset
+                        return True
+                    
+                    # Check option clicks
+                    for i, option_rect in enumerate(self.option_rects):
+                        if option_rect.collidepoint(event.pos):
+                            self.selected_index = i + self.scroll_offset
+                            self.text = self.options[self.selected_index]
+                            self.open = False
+                            self.update_image()
+                            return True
+                    
+                    # If clicked outside of dropdown menu, close it
+                    if not self.dropdown_menu_rect.collidepoint(event.pos):
                         self.open = False
-                        self.update_image()
-                        break
-                self.open = False
-        elif event.type == pygame.MOUSEMOTION and self.open:
-            for i, option_rect in enumerate(self.option_rects):
-                if option_rect.collidepoint(event.pos):
-                    pass
+                        return True
+            return False
+                        
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:  # Left mouse button
+                self.dragging_scrollbar = False
+                
+        elif event.type == pygame.MOUSEMOTION and self.dragging_scrollbar:
+            max_offset = max(0, len(self.options) - self.max_visible_options)
+            if self.scrollbar_rect:
+                track_height = self.scrollbar_rect.height - self.scrollbar_handle_rect.height
+                dy = event.pos[1] - self.drag_start_y
+                scroll_ratio = dy / (track_height if track_height > 0 else 1)
+                self.scroll_offset = max(0, min(max_offset, self.drag_start_offset + int(scroll_ratio * max_offset)))
+            return True
+            
+        elif event.type == pygame.MOUSEWHEEL:
+            # Check if mouse is over dropdown menu and it's open
+            mouse_pos = pygame.mouse.get_pos()
+            if self.open and (self.dropdown_menu_rect.collidepoint(mouse_pos) or self.rect.collidepoint(mouse_pos)):
+                # Scroll by adjusting offset - negate y for natural scroll direction
+                max_offset = max(0, len(self.options) - self.max_visible_options)
+                self.scroll_offset = max(0, min(max_offset, self.scroll_offset - event.y))
+                return True
+                
+        return False
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
         
         if self.open:
             self.option_rects = []
-            total_height = len(self.options) * 40
+            
+            visible_options = min(len(self.options), self.max_visible_options)
+            total_height = visible_options * 40
+            
             menu_rect = pygame.Rect(self.rect.x, self.rect.y + self.rect.height, 
                                    self.rect.width, total_height)
             pygame.draw.rect(screen, (40, 40, 60), menu_rect)
+            self.dropdown_menu_rect = menu_rect
             pygame.draw.rect(screen, (150, 150, 180), menu_rect, 2)
             
-            for i, option in enumerate(self.options):
-                rect = pygame.Rect(self.rect.x, self.rect.y + self.rect.height + (i*40), 
-                                  self.rect.width, 40)
+            # Draw scrollbar if needed
+            if len(self.options) > self.max_visible_options:
+                # Draw scrollbar track
+                self.scrollbar_rect = pygame.Rect(menu_rect.right - 20, menu_rect.y, 20, menu_rect.height)
+                pygame.draw.rect(screen, (60, 60, 80), self.scrollbar_rect)
+                # Calculate and draw handle
+                max_offset = max(0, len(self.options) - self.max_visible_options)
+                handle_height = max(30, (self.max_visible_options / len(self.options) * menu_rect.height))
+                track_height = self.scrollbar_rect.height - handle_height
+                handle_y = self.scroll_offset / (max_offset if max_offset else 1) * track_height
+                self.scrollbar_handle_rect = pygame.Rect(self.scrollbar_rect.x + 2,
+                                                         self.scrollbar_rect.y + handle_y,
+                                                         self.scrollbar_rect.width - 4, handle_height)
+                pygame.draw.rect(screen, (120, 120, 200), self.scrollbar_handle_rect, border_radius=4)
+            
+            # Draw visible items, offset by scroll_offset
+            start_idx = self.scroll_offset
+            end_idx = start_idx + visible_options
+            for i, option in enumerate(self.options[start_idx:end_idx]):
+                y_pos = menu_rect.y + i * 40
+                rect = pygame.Rect(menu_rect.x, y_pos,
+                                   menu_rect.width - (20 if len(self.options) > self.max_visible_options else 0), 40)
                 self.option_rects.append(rect)
                 
-                if i == self.selected_index:
+                if i + start_idx == self.selected_index:
                     pygame.draw.rect(screen, (80, 80, 150), rect)
                 
                 pygame.draw.rect(screen, (200, 200, 220), rect, 1)
                 
                 font = pygame.font.Font(None, 32)
                 text = font.render(option, True, (240, 240, 240))
-                screen.blit(text, (rect.x + 10, rect.y + 8))
+                
+                # Make sure text doesn't exceed button width
+                if text.get_width() > self.rect.width - 20:
+                    # Scale text to fit
+                    scale_factor = (self.rect.width - 20) / text.get_width()
+                    new_width = int(text.get_width() * scale_factor)
+                    new_height = int(text.get_height() * scale_factor)
+                    text = pygame.transform.scale(text, (new_width, new_height))
+                
+                screen.blit(text, (rect.x + 10, rect.y + (40 - text.get_height()) // 2))
 
 class Label:
     def __init__(self, text, x, y, color=(255, 255, 255), font_size=28):
@@ -144,7 +251,7 @@ class GameSprite(pygame.sprite.Sprite):
             self.frame_index = (self.frame_index + 1) % len(self.animation_frames)
             self.image = self.animation_frames[self.frame_index]
 
-def generate_sprite(class_type, animation, frame=0, skin_color=None, hair_color=None, outfit_color=None):
+def generate_sprite(class_type, animation, frame=0, skin_color=None, hair_color=None, outfit_color=None, flip=False):
     img = pygame.Surface((SPRITE_SIZE, SPRITE_SIZE), pygame.SRCALPHA, 32)
     img.fill((0, 0, 0, 0))
     
@@ -348,14 +455,20 @@ def generate_sprite(class_type, animation, frame=0, skin_color=None, hair_color=
         if animation == 'defending':
             pygame.draw.circle(img, (200, 200, 200), (16, 16), 10, 2)  # Shield outline
         
-        return img  # Ensure the function returns here for monsters
+        # Apply flip before returning the monster sprite
+        if flip:
+            img = pygame.transform.flip(img, True, False)
+        
+        return img  # Return the monster sprite with flip applied if needed
     
-    elif class_type in ['human bandit', 'human wizard']:
-        # Reuse Warrior and Mage animations
-        if class_type == 'human bandit':
-            return generate_sprite('warrior', animation, frame, skin_color, hair_color, outfit_color)
-        elif class_type == 'human wizard':
-            return generate_sprite('mage', animation, frame, skin_color, hair_color, outfit_color)
+    elif class_type in ['human bandit warrior', 'human bandit mage', 'human bandit archer']:
+        # Reuse Warrior, Mage and Archer animations
+        if class_type == 'human bandit warrior':
+            return generate_sprite('warrior', animation, frame, skin_color, hair_color, outfit_color, flip)
+        elif class_type == 'human bandit mage':
+            return generate_sprite('mage', animation, frame, skin_color, hair_color, outfit_color, flip)
+        elif class_type == 'human bandit archer':
+            return generate_sprite('archer', animation, frame, skin_color, hair_color, outfit_color, flip)
     
     if skin_color is None:
         skin_color = random.choice([(255, 213, 170), (240, 188, 150), (204, 145, 105), (160, 120, 90)])
@@ -728,6 +841,10 @@ def generate_sprite(class_type, animation, frame=0, skin_color=None, hair_color=
                          (SPRITE_SIZE//2 + 2, SPRITE_SIZE//4 + 13 - body_offset),
                          (SPRITE_SIZE//2 + 2, SPRITE_SIZE//4 + 20 - body_offset), 2)
 
+    # Final step: flip the sprite horizontally if requested
+    if flip:
+        img = pygame.transform.flip(img, True, False)
+
     return img
 
 def main():
@@ -758,20 +875,34 @@ def main():
     
     class_dropdown = Dropdown(
         left_column_x, row1_y + 30, column_width, 40,
-        ['Warrior', 'Archer', 'Mage', 'Slime', 'Goblin', 'Wolf', 'Bear', 'Troll', 'Ogre', 'Human Bandit', 'Human Wizard']
+        ['Warrior', 'Archer', 'Mage', 'Slime', 'Goblin', 'Wolf', 'Bear', 'Troll', 'Ogre', 
+         'Human Bandit Warrior', 'Human Bandit Mage', 'Human Bandit Archer']
     )
     animation_dropdown = Dropdown(
         right_column_x, row1_y + 30, column_width, 40,
         ['Idle', 'Walking', 'Attacking', 'Defending', 'Dying']
     )
     
+    # Position buttons in a row
+    button_width = 120
+    button_spacing = 30
+    total_width = button_width * 3 + button_spacing * 2
+    first_button_x = WIDTH // 2 - total_width // 2
+    
     generate_button = Button(
-        left_column_x, row3_y, column_width, 50,
-        'Generate Sprite'
+        first_button_x, row3_y, button_width, 50,
+        'Generate'
     )
+    
+    # Add flip switch between the generate and save buttons
+    flip_switch = Button(
+        first_button_x + button_width + button_spacing, row3_y, button_width, 50,
+        'Flip: OFF'
+    )
+    
     save_button = Button(
-        right_column_x, row3_y, column_width, 50,
-        'Save Sprite'
+        first_button_x + (button_width + button_spacing) * 2, row3_y, button_width, 50,
+        'Save'
     )
     
     speed_label = Label("Animation Speed:", WIDTH//2 - 100, row3_y + 70, label_color)
@@ -781,7 +912,7 @@ def main():
     )
 
     all_sprites = pygame.sprite.RenderUpdates(
-        class_dropdown, animation_dropdown, generate_button, save_button, speed_slider
+        class_dropdown, animation_dropdown, generate_button, save_button, speed_slider, flip_switch
     )
     
     current_frames = None
@@ -804,10 +935,23 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+                
+            # Handle events for UI elements
             class_dropdown.handle_event(event)
             animation_dropdown.handle_event(event)
-            generate_button.handle_event(event)
-            save_button.handle_event(event)
+            
+            # Use the return value from handle_event to check if buttons were clicked
+            if generate_button.handle_event(event):
+                generate_sprite_action()
+            
+            if save_button.handle_event(event):
+                save_sprite_action()
+            
+            if flip_switch.handle_event(event):
+                # Toggle flip switch text
+                flip_switch.text = 'Flip: ON' if flip_switch.text == 'Flip: OFF' else 'Flip: OFF'
+                flip_switch.update_image()
+            
             speed_slider.handle_event(event)
 
         screen.blit(bg_surface, (0, 0))
@@ -840,10 +984,13 @@ def main():
         
         if generate_button.selected:
             class_val = class_dropdown.text.lower()
-            selected_anim = animation_dropdown.text.lower()  # Preview selected anim when generate is clicked
+            selected_anim = animation_dropdown.text.lower()
             available_anims = ['idle', 'walking', 'attacking', 'defending', 'dying']
             generate_button.selected = False
             generate_button.update_image()
+            
+            # Check if flip is enabled
+            flip_enabled = flip_switch.text == 'Flip: ON'
             
             preview_group.empty()
             generated_frames = {}
@@ -860,7 +1007,7 @@ def main():
             for anim in available_anims:
                 frames = []
                 for i in range(4):
-                    frame_img = generate_sprite(class_val, anim, i, skin_color, hair_color, outfit_color)
+                    frame_img = generate_sprite(class_val, anim, i, skin_color, hair_color, outfit_color, flip_enabled)
                     frames.append(frame_img)
                 generated_frames[anim] = frames
             
@@ -926,6 +1073,13 @@ def main():
         
         pygame.display.flip()  
         clock.tick(FPS)
+
+# Move the sprite generation function to a separate function to avoid code duplication
+def generate_sprite_action():
+    pass
+
+def save_sprite_action():
+    pass
 
 if __name__ == '__main__':
     main()
