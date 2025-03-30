@@ -1,3 +1,9 @@
+import os
+# Set XDG_RUNTIME_DIR if not set and disable audio to avoid ALSA errors
+if 'XDG_RUNTIME_DIR' not in os.environ or not os.environ['XDG_RUNTIME_DIR']:
+    os.environ['XDG_RUNTIME_DIR'] = '/tmp'
+os.environ['SDL_AUDIODRIVER'] = 'dummy'
+
 import pygame
 import sys
 import random
